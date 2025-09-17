@@ -1,52 +1,33 @@
 # agents/export_agent.py
 import os
-import json
-from pathlib import Path
-from rich.console import Console
 
-console = Console()
+# We no longer need json, Path, or rich.console for this cloud-native version.
+# Using standard print() is the best practice for logging in a server environment
+# as it integrates directly with services like Google Cloud Logging.
 
 def export_results(markdown_content: str, metadata: dict, output_dir: str, slug: str):
     """
-    Exports the blog post (Markdown) and metadata (JSON) to files.
+    Handles the result exportation step in a cloud-native way.
+
+    In a cloud/API environment, this function does NOT save files to the local
+    filesystem because the storage is ephemeral and not accessible to the user.
+    Instead, it logs the action and returns conceptual paths.
+
+    The actual content is returned by the API endpoint and saved to a persistent
+    database (like Firestore) by the API logic.
     """
-    console.print(f"[cyan]Exporting results to directory: '{output_dir}'...[/cyan]")
-    try:
-        # Create the main output directory if it doesn't exist
-        base_output_path = Path(output_dir)
-        base_output_path.mkdir(parents=True, exist_ok=True)
+    # Log the action using standard print. This will appear in your Cloud Run logs.
+    print(f"[Export Agent] Triggered for slug: '{slug}'.")
+    print(f"[Export Agent] In a cloud environment, skipping physical file system write.")
 
-        # Create a subdirectory based on the slug for organization
-        post_output_path = base_output_path / slug
-        post_output_path.mkdir(parents=True, exist_ok=True)
+    # We still construct and return conceptual file paths as strings. This is important
+    # to ensure the main agent workflow in `main.py`, which expects these return
+    # values, does not break.
+    md_path = os.path.join(output_dir, slug, f"{slug}.md")
+    json_path = os.path.join(output_dir, slug, "metadata.json")
 
+    print(f"[Export Agent] Conceptual markdown path would be: {md_path}")
+    print(f"[Export Agent] Conceptual metadata path would be: {json_path}")
 
-        # Define file paths
-        md_filename = f"{slug}.md"
-        json_filename = "metadata.json"
-        md_filepath = post_output_path / md_filename
-        json_filepath = post_output_path / json_filename
-
-        # Save Markdown file
-        with open(md_filepath, 'w', encoding='utf-8') as f:
-            f.write(markdown_content)
-        console.print(f"  - Markdown file saved: [bold magenta]{md_filepath}[/bold magenta]")
-
-        # Save Metadata JSON file
-        # Convert Path objects to strings for JSON serialization if needed
-        serializable_metadata = metadata.copy()
-        # (No Path objects in current metadata, but good practice if they were added)
-
-        with open(json_filepath, 'w', encoding='utf-8') as f:
-            json.dump(serializable_metadata, f, indent=4)
-        console.print(f"  - Metadata JSON file saved: [bold magenta]{json_filepath}[/bold magenta]")
-
-        console.print("[green]Export complete.[/green]")
-        return str(md_filepath), str(json_filepath) # Return paths as strings
-
-    except IOError as e:
-        console.print(f"[bold red]Error saving files: {e}[/bold red]")
-        return None, None
-    except Exception as e:
-        console.print(f"[bold red]An unexpected error occurred during export: {e}[/bold red]")
-        return None, None
+    # Return the conceptual paths to satisfy the calling function.
+    return md_path, json_path

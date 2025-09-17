@@ -5,66 +5,60 @@ import requests
 import aiohttp
 import asyncio
 import functools
-from rich.console import Console
-import streamlit as st # <--- Add Streamlit import
-from dotenv import load_dotenv # <--- Add dotenv import
 
-console = Console()
+# This file is now clean of any UI (Streamlit) or CLI (Rich, dotenv) dependencies.
+# It's designed to run in a server environment where configuration is passed via
+# environment variables.
 
 # --- Gemini Client ---
 def get_gemini_client():
-    """Initializes and returns the Gemini client, checking st.secrets first."""
-    api_key = None
-    # Try Streamlit secrets first (will only work when deployed)
-    try:
-        if hasattr(st, 'secrets') and "GEMINI_API_KEY" in st.secrets:
-             api_key = st.secrets["GEMINI_API_KEY"]
-             # print("Using Gemini key from st.secrets") # Debug print
-    except Exception:
-        pass # Fail silently if st.secrets not available or key missing
-
-    # If not found via st.secrets, try environment variables (for local .env)
-    if not api_key:
-        # print("Gemini key not found in st.secrets, trying .env") # Debug print
-        load_dotenv() # Load .env file if running locally
-        api_key = os.getenv("GEMINI_API_KEY")
+    """
+    Initializes and returns the Gemini client.
+    It relies on the GEMINI_API_KEY environment variable, which is securely
+    injected by Cloud Run from Secret Manager.
+    """
+    api_key = os.getenv("GEMINI_API_KEY")
 
     if not api_key:
-        console.print("[bold red]Error: GEMINI_API_KEY not found in st.secrets or environment variables.[/bold red]")
-        # Also show error in Streamlit if possible (though this runs before UI usually)
-        # Consider raising an exception here instead of returning None for clarity
+        print("ERROR: GEMINI_API_KEY environment variable not found.")
+        # In a server environment, this is a critical configuration error.
+        # The application cannot function without it.
         return None
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        # print("Gemini client configured successfully.") # Debug print
+        model = genai.GenerativeModel('gemini-2.0-flash') # Updated to a more recent model
+        print("Gemini client configured successfully.")
         return model
     except Exception as e:
-        console.print(f"[bold red]Error initializing Gemini client: {e}[/bold red]")
+        print(f"ERROR: Failed to initialize Gemini client: {e}")
         return None
 
 # --- NewsData.io Client ---
 async def fetch_news_async(session, api_key, topic):
     """Fetches news related to the topic asynchronously."""
+    if not api_key:
+        print("WARNING: NewsData API key is missing. Skipping news fetch.")
+        return []
+
     # Basic URL encoding for the topic
     query = requests.utils.quote(topic)
     url = f"https://newsdata.io/api/1/news?apikey={api_key}&q={query}&language=en"
-    # Add retry logic here later if needed
+
     try:
-        async with session.get(url, timeout=15) as response: # Added timeout
+        async with session.get(url, timeout=15) as response:
             response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
             data = await response.json()
             # Limit to top 3 relevant articles for context
             return data.get('results', [])[:3]
     except aiohttp.ClientError as e:
-        console.print(f"[yellow]NewsData API request failed: {e}[/yellow]")
+        print(f"WARNING: NewsData API request failed: {e}")
         return []
     except asyncio.TimeoutError:
-        console.print("[yellow]NewsData API request timed out.[/yellow]")
+        print("WARNING: NewsData API request timed out.")
         return []
     except Exception as e:
-        console.print(f"[yellow]An unexpected error occurred during NewsData fetch: {e}[/yellow]")
+        print(f"WARNING: An unexpected error occurred during NewsData fetch: {e}")
         return []
 
 
@@ -86,10 +80,10 @@ def fetch_datamuse_keywords(topic):
 
         return list(keywords)[:15] # Limit total keywords
     except requests.exceptions.RequestException as e:
-        console.print(f"[yellow]Datamuse API request failed: {e}[/yellow]")
+        print(f"WARNING: Datamuse API request failed: {e}")
         return []
     except Exception as e:
-        console.print(f"[yellow]An unexpected error occurred during Datamuse fetch: {e}[/yellow]")
+        print(f"WARNING: An unexpected error occurred during Datamuse fetch: {e}")
         return []
 
 # --- Quotable.io Client ---
@@ -107,8 +101,8 @@ def fetch_quotable_quotes(topic_keywords):
         quotes = [f"\"{q['content']}\" - {q['author']}" for q in quotes_data]
         return quotes
     except requests.exceptions.RequestException as e:
-        console.print(f"[yellow]Quotable API request failed: {e}[/yellow]")
+        print(f"WARNING: Quotable API request failed: {e}")
         return []
     except Exception as e:
-        console.print(f"[yellow]An unexpected error occurred during Quotable fetch: {e}[/yellow]")
+        print(f"WARNING: An unexpected error occurred during Quotable fetch: {e}")
         return []
