@@ -18,6 +18,8 @@ app = FastAPI(
 origins = [
     "http://localhost",
     "http://localhost:8080",
+    "http://127.0.0.1:5500",  # <-- ADD THIS LINE FOR VS CODE GO LIVE
+    "http://localhost:5500",
     # Add your Firebase hosting URL once you deploy it
     # "https://your-project-id.web.app",
     # "https://your-project-id.firebaseapp.com",

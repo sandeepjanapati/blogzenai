@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlogZenAI - Your AI Writing Assistant</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Our Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Markdown Renderer Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>BlogZenAI 🚀</h1>
+                <p>Generate SEO-Optimized Articles with AI</p>
+            </div>
+        </header>
+
+        <main>
+            <div class="grid-container">
+                <section class="generator-card card">
+                    <h2>Create New Content</h2>
+                    <form id="blog-form">
+                        <div class="form-group">
+                            <label for="topic">Blog Topic</label>
+                            <input type="text" id="topic" placeholder="e.g., The Future of Renewable Energy" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tone">Writing Tone</label>
+                            <input type="text" id="tone" placeholder="e.g., Professional, witty, educational">
+                        </div>
+                        <button type="submit" id="generate-btn">
+                            <span class="btn-text">Generate Article</span>
+                            <span class="loader" style="display: none;"></span>
+                        </button>
+                    </form>
+                </section>
+
+                <section class="history-card card">
+                    <h2>Recent History</h2>
+                    <ul id="history-list">
+                        <li class="placeholder">Your recent generations will appear here.</li>
+                    </ul>
+                </section>
+            </div>
+
+            <section class="results-card card" id="results-section" style="display: none;">
+                <h2>Generated Article</h2>
+                <article id="blog-output">
+                    <!-- JS will populate this with formatted HTML -->
+                </article>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 BlogZenAI. Powered by Google Cloud & Firebase.</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
