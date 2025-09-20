@@ -52,3 +52,25 @@ def get_history(limit: int = 20):
     except Exception as e:
         print(f"Error retrieving history from Firestore: {e}")
         return []
+
+def get_history_item_by_id(doc_id: str):
+    """Retrieves a single history document by its Firestore ID."""
+    try:
+        doc_ref = db.collection('history').document(doc_id)
+        doc = doc_ref.get()
+
+        if not doc.exists:
+            print(f"No history item found with ID: {doc_id}")
+            return None
+
+        data = doc.to_dict()
+        data['id'] = doc.id
+        # Convert timestamp to a string for JSON serialization
+        if 'timestamp' in data and hasattr(data['timestamp'], 'isoformat'):
+             data['timestamp'] = data['timestamp'].isoformat()
+
+        print(f"Successfully retrieved history item with ID: {doc_id}")
+        return data
+    except Exception as e:
+        print(f"Error retrieving document {doc_id} from Firestore: {e}")
+        return None

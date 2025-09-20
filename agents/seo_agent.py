@@ -1,15 +1,14 @@
 # agents/seo_agent.py
 import re
 import textstat
-from rich.console import Console
+import logging
 
-console = Console()
 
 def generate_seo_metadata(topic: str, content: str, research_data: dict, gemini_client):
     """
     Generates SEO metadata (title, description, tags, slug, reading time, readability).
     """
-    console.print("[cyan]Generating SEO metadata...[/cyan]")
+    logging.info("Generating SEO metadata...")
 
     metadata = {
         'title': f"Generated Blog Post on {topic}", # Default title
@@ -45,7 +44,7 @@ def generate_seo_metadata(topic: str, content: str, research_data: dict, gemini_
                 elif line.startswith("Meta Description:"):
                     metadata['meta_description'] = line.split(":", 1)[1].strip()[:160] # Ensure max length
         except Exception as e:
-            console.print(f"[bold red]Error generating Title/Description with Gemini: {e}[/bold red]")
+            logging.error(f"Error generating Title/Description with Gemini: {e}")
             # Keep defaults if Gemini fails
 
     # --- Generate Tags ---
@@ -73,8 +72,8 @@ def generate_seo_metadata(topic: str, content: str, research_data: dict, gemini_
     try:
         metadata['readability_score'] = textstat.flesch_kincaid_grade(content)
     except Exception as e:
-        console.print(f"[yellow]Could not calculate readability score: {e}[/yellow]")
+        logging.warning(f"Could not calculate readability score: {e}")
         metadata['readability_score'] = "N/A" # Indicate failure
 
-    console.print("[green]SEO metadata generation complete.[/green]")
+    logging.info("SEO metadata generation complete.")
     return metadata

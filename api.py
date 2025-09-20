@@ -1,99 +1,102 @@
 # api.py
 import os
-import asyncio
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from main import run_blog_agent
-# Import all necessary database functions
-from utils.database import save_generation_to_history, get_history, get_history_item_by_id
+from utils.database import get_history, get_history_item_by_id
 
-# Initialize the Flask application
-app = Flask(__name__)
+# Initialize the FastAPI application
+app = FastAPI(
+    title="BlogZenAI API",
+    description="An API to generate blog posts using AI agents.",
+    version="1.0.0"
+)
 
-@app.route('/generate-blog', methods=['POST'])
-def generate_blog_endpoint():
+# --- CORS Configuration ---
+# This is CRITICAL for allowing your Firebase website to call the API
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    # Add your Firebase hosting URL once you deploy it
+    # "https://your-project-id.web.app",
+    # "https://your-project-id.firebaseapp.com",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Pydantic Models for Request/Response validation ---
+class BlogRequest(BaseModel):
+    topic: str
+    tone: str = "informative"
+
+# --- API Endpoints ---
+@app.post("/generate-blog")
+async def generate_blog_endpoint(request: BlogRequest):
     """
     API endpoint to generate a blog post.
-    Expects a JSON payload with 'topic' and an optional 'tone'.
     Saves the result to Firestore history upon success.
     """
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "Invalid JSON payload"}), 400
-
-    topic = data.get('topic')
-    tone = data.get('tone', 'informative') # Default tone if not provided
-
-    if not topic:
-        return jsonify({"error": "Missing required field: 'topic'"}), 400
-
-    print(f"Received request to generate blog for topic: '{topic}'")
-
+    print(f"Received request to generate blog for topic: '{request.topic}'")
     try:
-        # Use a temporary directory in the cloud environment's memory
+        # Cloud Run provides an ephemeral filesystem at /tmp
         output_dir = "/tmp/output"
-        markdown_content, metadata = asyncio.run(
-            run_blog_agent(topic, tone, output_dir, run_mode='api')
+        markdown_content, metadata = await run_blog_agent(
+            request.topic, request.tone, output_dir, run_mode='api'
         )
 
-        if not markdown_content:
-            # The agent should have logged the specific error.
-            return jsonify({"error": "Failed to generate blog content. Check server logs for details."}), 500
+        if not markdown_content or not metadata:
+            raise HTTPException(status_code=500, detail="Failed to generate blog content. Check server logs.")
 
-        # --- Save to History ---
-        # After successful generation, save the result to Firestore.
-        history_id = save_generation_to_history(topic, tone, metadata, markdown_content)
+        # Saving to history is now handled inside run_blog_agent or should be called here.
+        # Let's assume it should be here.
+        from utils.database import save_generation_to_history
+        history_id = save_generation_to_history(request.topic, request.tone, metadata, markdown_content)
         if not history_id:
-            # Log a warning but still return the content to the user
             print("Warning: Blog was generated but failed to save to history.")
 
-        # --- Prepare and Return Response ---
         response_data = {
             "status": "success",
-            "history_id": history_id, # Include the new ID in the response
-            "topic": topic,
+            "history_id": history_id,
+            "topic": request.topic,
             "metadata": metadata,
             "blog_content_markdown": markdown_content
         }
-        return jsonify(response_data), 200
-
+        return response_data
     except Exception as e:
         print(f"An unexpected error occurred in the API endpoint: {e}")
-        return jsonify({"error": "An internal server error occurred."}), 500
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
-@app.route('/history', methods=['GET'])
-def get_history_list_endpoint():
+@app.get("/history")
+async def get_history_list_endpoint(limit: int = Query(20, gt=0, le=100)):
     """
     API endpoint to retrieve a list of recent blog generations.
-    Supports a 'limit' query parameter (e.g., /history?limit=10).
     """
     try:
-        limit = request.args.get('limit', default=20, type=int)
         history_data = get_history(limit=limit)
-        return jsonify(history_data), 200
+        return history_data
     except Exception as e:
         print(f"An error occurred in the history list endpoint: {e}")
-        return jsonify({"error": "An internal server error occurred."}), 500
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
-# --- NEW ENDPOINT TO GET A SINGLE HISTORY ITEM ---
-@app.route('/history/<string:history_id>', methods=['GET'])
-def get_single_history_item_endpoint(history_id):
+@app.get("/history/{history_id}")
+async def get_single_history_item_endpoint(history_id: str):
     """
     API endpoint to retrieve a specific blog generation by its Firestore document ID.
     """
     try:
         history_item = get_history_item_by_id(history_id)
-
         if history_item is None:
-            return jsonify({"error": f"History item with ID '{history_id}' not found."}), 404
-
-        return jsonify(history_item), 200
+            raise HTTPException(status_code=404, detail=f"History item with ID '{history_id}' not found.")
+        return history_item
     except Exception as e:
         print(f"An error occurred retrieving history item {history_id}: {e}")
-        return jsonify({"error": "An internal server error occurred."}), 500
-# --- END NEW ENDPOINT ---
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
 
-# This block is for local development testing and is not used by Gunicorn in production.
-if __name__ == "__main__":
-    # Cloud Run provides the PORT env var, but we default to 8080 for local runs.
-    port = int(os.environ.get("PORT", 8080))
-    app.run(debug=True, host='0.0.0.0', port=port)
+# To run locally for testing: uvicorn api:app --reload
