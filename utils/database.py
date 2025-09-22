@@ -16,13 +16,13 @@ def save_generation_to_history(topic: str, tone: str, metadata: dict, markdown_c
         # Create a new document with a unique ID.
         # We'll store all the relevant information.
         doc_ref = history_collection.document() # Firestore generates a unique ID
-        doc_ref.set({
+        data_to_save = {
             'topic': topic,
             'tone': tone,
-            'timestamp': datetime.datetime.now(datetime.timezone.utc), # Use timezone-aware UTC time
-            'metadata': metadata, # This will be stored as a map
-            'markdown_content': markdown_content
-        })
+            'generated_output': markdown_content, # Renamed for clarity
+            'timestamp': datetime.datetime.now(datetime.timezone.utc)
+        }
+        doc_ref.set(data_to_save)
         print(f"Successfully saved generation for topic '{topic}' to Firestore with ID: {doc_ref.id}")
         return doc_ref.id
     except Exception as e:
@@ -73,4 +73,31 @@ def get_history_item_by_id(doc_id: str):
         return data
     except Exception as e:
         print(f"Error retrieving document {doc_id} from Firestore: {e}")
+        return None
+    
+
+
+def save_user_generation_to_history(user_info: dict, topic: str, tone: str, markdown_content: str):
+    """Saves a generation linked to a specific user."""
+    try:
+        # We can store user-specific generations in a different collection
+        # or add user fields to the main 'history' collection.
+        # For now, let's add to the main collection.
+        history_collection = db.collection('history')
+        doc_ref = history_collection.document()
+
+        data_to_save = {
+            'userId': user_info.get('uid'), # The unique user ID from Firebase Auth
+            'userName': user_info.get('name'),
+            'userEmail': user_info.get('email'),
+            'topic': topic,
+            'tone': tone,
+            'generated_output': markdown_content,
+            'timestamp': datetime.datetime.now(datetime.timezone.utc)
+        }
+        doc_ref.set(data_to_save)
+        print(f"Successfully saved generation for user {user_info.get('uid')}")
+        return doc_ref.id
+    except Exception as e:
+        print(f"Error saving user generation to Firestore: {e}")
         return None

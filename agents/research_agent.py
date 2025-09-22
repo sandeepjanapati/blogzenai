@@ -3,15 +3,13 @@ import asyncio
 import aiohttp
 import os
 from utils.api_clients import fetch_news_async, fetch_datamuse_keywords, fetch_quotable_quotes
-from rich.console import Console
-
-console = Console()
+import logging
 
 async def gather_research(topic: str, subtopics: list, newsdata_api_key: str):
     """
     Gathers research materials (news, keywords, quotes) concurrently.
     """
-    console.print(f"[cyan]Starting research for topic: '{topic}'...[/cyan]")
+    logging.info(f"Starting research for topic: '{topic}'...")
     keywords = fetch_datamuse_keywords(topic) # Sync call, benefits from caching
 
     async with aiohttp.ClientSession() as session:
@@ -32,9 +30,9 @@ async def gather_research(topic: str, subtopics: list, newsdata_api_key: str):
     quotes = quotes_results if not isinstance(quotes_results, Exception) else []
 
     if isinstance(news_results, Exception):
-         console.print(f"[yellow]News fetching task failed: {news_results}[/yellow]")
+         logging.warning(f"News fetching task failed: {news_results}")
     if isinstance(quotes_results, Exception):
-         console.print(f"[yellow]Quotes fetching task failed: {quotes_results}[/yellow]")
+         logging.warning(f"Quotes fetching task failed: {quotes_results}")
 
 
     research_data = {
@@ -42,5 +40,5 @@ async def gather_research(topic: str, subtopics: list, newsdata_api_key: str):
         'keywords': keywords,
         'quotes': quotes
     }
-    console.print(f"[green]Research complete. Found {len(news)} news items, {len(keywords)} keywords, {len(quotes)} quotes.[/green]")
+    logging.info(f"Research complete. Found {len(news)} news items, {len(keywords)} keywords, {len(quotes)} quotes.")
     return research_data

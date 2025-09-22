@@ -1,15 +1,13 @@
 # agents/understanding_agent.py
-from rich.console import Console
-
-console = Console()
+import logging
 
 def analyze_topic(topic: str, tone: str, gemini_client):
     """
     Uses Gemini to break down the topic into subtopics and confirm tone.
     """
-    console.print(f"[cyan]Analyzing topic: '{topic}' with tone: '{tone}'...[/cyan]")
+    logging.info(f"Analyzing topic: '{topic}' with tone: '{tone}'...")
     if not gemini_client:
-        console.print("[bold red]Gemini client not available. Skipping topic analysis.[/bold red]")
+        logging.error("Gemini client not available. Skipping topic analysis.")
         # Provide default structure if Gemini fails
         return {
             'subtopics': ["Introduction", f"Key Aspects of {topic}", "Challenges and Solutions", "Future Trends", "Conclusion"],
@@ -55,13 +53,13 @@ def analyze_topic(topic: str, tone: str, gemini_client):
         if not subtopics: # Fallback if parsing failed
              raise ValueError("Could not parse subtopics from Gemini response.")
 
-        console.print(f"[green]Topic analysis complete. Found {len(subtopics)} subtopics.[/green]")
+        logging.info(f"Topic analysis complete. Found {len(subtopics)} subtopics.")
         return {
             'subtopics': subtopics,
             'tone': confirmed_tone
         }
     except Exception as e:
-        console.print(f"[bold red]Error during topic analysis with Gemini: {e}[/bold red]")
+        logging.error(f"Error during topic analysis with Gemini: {e}")
         # Fallback structure
         return {
             'subtopics': ["Introduction", f"Understanding {topic}", "Key Considerations", "Examples", "Conclusion"],

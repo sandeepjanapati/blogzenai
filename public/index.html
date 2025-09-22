@@ -6,8 +6,6 @@
     <title>BlogZenAI - Your AI Writing Assistant</title>
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Our Stylesheet -->
@@ -15,13 +13,23 @@
 
     <!-- Markdown Renderer Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+
+    <!-- Firebase SDKs (Load these early) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">
-                <h1>BlogZenAI 🚀</h1>
-                <p>Generate SEO-Optimized Articles with AI</p>
+            <h1>BlogZenAI 🚀</h1>
+            <p>Generate high-quality blog posts in seconds.</p>
+            <!-- Login/Logout controls will go here -->
+            <div id="auth-container">
+                <button id="login-btn" style="display: none;">Sign in with Google</button>
+                <div id="user-info" style="display: none;">
+                    <p id="user-display"></p>
+                    <button id="logout-btn">Sign Out</button>
+                </div>
             </div>
         </header>
 
@@ -62,9 +70,11 @@
         </main>
         
         <footer>
-            <p>&copy; 2024 BlogZenAI. Powered by Google Cloud & Firebase.</p>
+            <p>&copy; Copyright 2025 BlogZenAI</p>
         </footer>
     </div>
     <script src="script.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 </body>
 </html>

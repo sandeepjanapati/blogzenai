@@ -1,22 +1,21 @@
 # agents/writing_agent.py
-from rich.console import Console
+import logging 
 import random
 
-console = Console()
 
 def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: dict, gemini_client):
     """
     Generates the full blog post content using Gemini.
     """
-    console.print("[cyan]Starting content generation...[/cyan]")
+    logging.info("Starting content generation...")
     if not gemini_client:
-        console.print("[bold red]Gemini client not available. Cannot generate content.[/bold red]")
+        logging.error("Gemini client not available. Cannot generate content.")
         return "# Blog Post Generation Failed\n\nCould not connect to the generative AI service."
 
     full_content = []
 
     # --- Introduction ---
-    console.print("[cyan]Generating introduction...[/cyan]")
+    logging.info("Generating introduction...")
     intro_prompt = f"""
     Write an engaging introduction (around 100-150 words) for a blog post about "{topic}".
     The tone should be {tone}.
@@ -28,14 +27,14 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
         full_content.append(intro_response.text.strip())
         full_content.append("\n") # Add space after intro
     except Exception as e:
-        console.print(f"[bold red]Error generating introduction: {e}[/bold red]")
+        logging.error(f"Error generating introduction: {e}")
         full_content.append(f"*[Error generating introduction: {e}]*")
 
 
     # --- Body Sections (Subtopics) ---
-    console.print(f"[cyan]Generating content for {len(subtopics)} subtopics...[/cyan]")
+    logging.info(f"Generating content for {len(subtopics)} subtopics...")
     for i, subtopic in enumerate(subtopics):
-        console.print(f"  - Generating section for: '{subtopic}' ({i+1}/{len(subtopics)})")
+        logging.info(f"  - Generating section for: '{subtopic}' ({i+1}/{len(subtopics)})")
         # Prepare context from research (optional, keep it concise)
         context = ""
         if research_data.get('news'):
@@ -66,12 +65,12 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
             full_content.append(section_response.text.strip())
             full_content.append("\n") # Add space between sections
         except Exception as e:
-            console.print(f"[bold red]Error generating section '{subtopic}': {e}[/bold red]")
+            logging.error(f"Error generating section '{subtopic}': {e}")
             full_content.append(f"## {subtopic}\n\n*[Error generating content for this section: {e}]*\n")
 
 
     # --- Conclusion ---
-    console.print("[cyan]Generating conclusion...[/cyan]")
+    logging.info("Generating conclusion...")
     conclusion_prompt = f"""
     Write a strong concluding paragraph (around 100 words) for the blog post about "{topic}".
     The tone should be {tone}.
@@ -84,8 +83,8 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
         full_content.append("## Conclusion\n") # Add H2 heading for conclusion
         full_content.append(conclusion_response.text.strip())
     except Exception as e:
-        console.print(f"[bold red]Error generating conclusion: {e}[/bold red]")
+        logging.error(f"Error generating conclusion: {e}")
         full_content.append("\n## Conclusion\n\n*[Error generating conclusion: {e}]*")
 
-    console.print("[green]Content generation complete.[/green]")
+    logging.info("Content generation complete.")
     return "\n".join(full_content)

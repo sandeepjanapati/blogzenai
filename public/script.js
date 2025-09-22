@@ -1,10 +1,107 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAZTNe_2vLOP1Ommwb99Bj46h81phBVFj8",
+      authDomain: "bolgzenai.firebaseapp.com",
+      projectId: "bolgzenai",
+      storageBucket: "bolgzenai.appspot.com", // Note: This might be different (e.g., bolgzenai.firebasestorage.app) check your console
+      messagingSenderId: "474557573729",
+      appId: "1:474557573729:web:409bea6f9b3e0979745820",
+      measurementId: "G-5M6ZM3XJPW"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // --- DOM Elements ---
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authContainer = document.getElementById('auth-container');
+    const userInfoDiv = document.getElementById('user-info');
+    const userDisplay = document.getElementById('user-display');
+    const form = document.getElementById('blog-form');
+
+
+    // --- Handle User State Changes ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            // User is signed IN
+            loginBtn.style.display = 'none';
+            userInfoDiv.style.display = 'block';
+            userDisplay.textContent = `Welcome, ${user.displayName}!`;
+        } else {
+            // User is signed OUT
+            loginBtn.style.display = 'block';
+            userInfoDiv.style.display = 'none';
+        }
+    });
+
+    // --- Event Listeners ---
+    loginBtn.addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider);
+    });
+
+    logoutBtn.addEventListener('click', () => {
+        auth.signOut();
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        let currentUser = auth.currentUser;
+
+        // ** THIS IS THE CORE LOGIC CHANGE **
+        // If user is not logged in, trigger the login popup
+        if (!currentUser) {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                currentUser = result.user; // Now we have the user
+            } catch (error) {
+                console.error("Login failed:", error);
+                alert("You must sign in to generate content.");
+                return; // Stop if login fails or is cancelled
+            }
+        }
+
+        // --- Proceed with generation since we now have a user ---
+        const token = await currentUser.getIdToken();
+        const topic = document.getElementById('topic').value;
+        const tone = document.getElementById('tone').value;
+
+        setLoadingState(true);
+
+        try {
+            const response = await fetch(`${API_URL}/generate-blog`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ topic, tone: tone || 'informative' })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || 'An unknown error occurred.');
+            }
+
+            const data = await response.json();
+            displayContent(data.blog_content_markdown);
+            loadHistory();
+        } catch (error) {
+            console.error('Error generating blog:', error);
+            alert(`Generation Failed: ${error.message}`);
+        } finally {
+            setLoadingState(false);
+        }
+    });
+
     // IMPORTANT: Replace with your API URL
     // For local testing: 'http://127.0.0.1:8000'
     // For production: 'https://your-cloud-run-service-url'
-    const API_URL = 'http://127.0.0.1:8000';
+    const API_URL = 'https://blogzenai-api-474557573729.asia-south1.run.app';
 
-    const form = document.getElementById('blog-form');
     const generateBtn = document.getElementById('generate-btn');
     const btnText = document.querySelector('.btn-text');
     const loader = document.querySelector('.loader');
@@ -75,36 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setLoadingState(false);
         }
     };
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const topic = document.getElementById('topic').value;
-        const tone = document.getElementById('tone').value;
-
-        setLoadingState(true);
-
-        try {
-            const response = await fetch(`${API_URL}/generate-blog`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ topic, tone: tone || 'informative' })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || 'An unknown error occurred.');
-            }
-
-            const data = await response.json();
-            displayContent(data.blog_content_markdown);
-            loadHistory(); // Refresh history list after a new generation
-        } catch (error) {
-            console.error('Error generating blog:', error);
-            alert(`Generation Failed: ${error.message}`);
-        } finally {
-            setLoadingState(false);
-        }
-    });
 
     // Initial load
     loadHistory();

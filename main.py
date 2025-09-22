@@ -106,39 +106,3 @@ async def run_blog_agent(topic: str, tone: str, output_dir: str, run_mode: str =
 
     log_message("✅ Blog post generation complete!")
     return markdown_content, metadata
-
-
-# --- CLI Execution Block ---
-# This allows the script to be run directly from the command line for testing.
-# It will not be executed when imported by another file (like api.py).
-if __name__ == "__main__":
-    # Import rich here for CLI-only usage
-    from rich.console import Console
-    from rich.panel import Panel
-    console = Console()
-
-    parser = argparse.ArgumentParser(description="Autonomous Python Blog Writing Agent - CLI Mode")
-    parser.add_argument("--topic", type=str, required=True, help="The main topic for the blog post.")
-    parser.add_argument("--tone", type=str, default="informative", help="Desired writing tone.")
-    parser.add_argument("--output-dir", type=str, default="output", help="Directory to save the generated files.")
-
-    args = parser.parse_args()
-
-    try:
-        # Run the main async function using asyncio.run for the CLI
-        content, meta = asyncio.run(run_blog_agent(args.topic, args.tone, args.output_dir, run_mode='cli'))
-
-        if content and meta:
-            summary_panel = Panel(
-                f"✅ Blog post generation successful!\n\n"
-                f"   - Topic: [bold cyan]{args.topic}[/bold cyan]\n"
-                f"   - Output Directory: [bold magenta]{os.path.abspath(args.output_dir)}/{meta.get('slug', '')}[/bold magenta]",
-                title="Execution Summary",
-                border_style="green"
-            )
-            console.print(summary_panel)
-        else:
-            console.print(Panel("❌ Blog post generation failed. Check logs above for errors.", title="Execution Summary", border_style="red"))
-
-    except Exception as e:
-        console.print(f"[bold red]An unexpected error occurred in the main CLI execution: {e}[/bold red]")
