@@ -3,78 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BlogZenAI - Your AI Writing Assistant</title>
+    <title>BlogZenAI - Content Studio</title>
     
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
-    <!-- Our Stylesheet -->
+    <!-- Our New Stylesheet -->
     <link rel="stylesheet" href="style.css">
 
     <!-- Markdown Renderer Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
 
-    <!-- Firebase SDKs (Load these early) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>BlogZenAI 🚀</h1>
-            <p>Generate high-quality blog posts in seconds.</p>
-            <!-- Login/Logout controls will go here -->
-            <div id="auth-container">
-                <button id="login-btn" style="display: none;">Sign in with Google</button>
-                <div id="user-info" style="display: none;">
-                    <p id="user-display"></p>
-                    <button id="logout-btn">Sign Out</button>
+    <div class="studio-layout">
+        <!-- ===== THE SLIDE-OUT SIDEBAR ===== -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button id="new-blog-btn" class="new-blog-button">
+                    <span class="material-icons">add</span> New Blog
+                </button>
+            </div>
+            <div class="sidebar-content">
+                <p class="history-title">History</p>
+                <ul id="history-list">
+                    <!-- History items will be populated by JS -->
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <div id="auth-container">
+                    <button id="login-btn" style="display: none;">Sign in with Google</button>
+                    <div id="creator-profile" style="display: none;">
+                        <a href="https://www.linkedin.com/in/janapatisandeep/" target="_blank" rel="noopener noreferrer" title="LinkedIn">
+                            <svg class="icon" viewBox="0 0 24 24"><path fill="currentColor" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4s1.39.63 1.39 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77Z"/></svg>
+                        </a>
+                        <a href="https://github.com/sandeepjanapati" target="_blank" rel="noopener noreferrer" title="GitHub">
+                            <svg class="icon" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                        </a>
+                        <a href="mailto:janapati.sandeep.yadav@gmail.com" title="Email">
+                            <span class="material-icons icon">email</span>
+                        </a>
+                    </div>
                 </div>
             </div>
-        </header>
+        </aside>
 
-        <main>
-            <div class="grid-container">
-                <section class="generator-card card">
-                    <h2>Create New Content</h2>
-                    <form id="blog-form">
-                        <div class="form-group">
-                            <label for="topic">Blog Topic</label>
-                            <input type="text" id="topic" placeholder="e.g., The Future of Renewable Energy" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="tone">Writing Tone</label>
-                            <input type="text" id="tone" placeholder="e.g., Professional, witty, educational">
-                        </div>
-                        <button type="submit" id="generate-btn">
-                            <span class="btn-text">Generate Article</span>
-                            <span class="loader" style="display: none;"></span>
-                        </button>
-                    </form>
-                </section>
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-                <section class="history-card card">
-                    <h2>Recent History</h2>
-                    <ul id="history-list">
-                        <li class="placeholder">Your recent generations will appear here.</li>
-                    </ul>
-                </section>
+        <div class="content-wrapper">
+            <button class="menu-toggle" id="menu-toggle">
+                <span class="material-icons">menu</span>
+            </button>
+
+            <main class="main-content" id="main-content">
+                <div id="welcome-view">
+                    <div class="welcome-content">
+                        <img src="logo.png" alt="BlogZenAI Logo" class="welcome-logo">
+                        <h1>BlogZenAI</h1>
+                        <p>Your AI-powered blog creation studio. How can I help you today?</p>
+                    </div>
+                </div>
+
+                <div id="generation-view" style="display: none;">
+                    <article id="blog-output">
+                        <!-- JS will populate this with formatted HTML -->
+                    </article>
+                </div>
+            </main>
+
+            <div class="prompt-area-container">
+                <div class="prompt-fade"></div>
+                <form id="blog-form">
+                    <div class="prompt-bar">
+                        <!-- NEW MOBILE TONE CONTAINER -->
+                        <div class="tone-toggle-mobile">
+                            <select id="tone-mobile">
+                                <option value="informative">Informative</option>
+                                <option value="educational">Educational</option>
+                                <option value="creative">Creative</option>
+                                <option value="formal">Formal</option>
+                                <option value="technical">Technical</option>
+                                
+                            </select>
+                            <span class="material-icons">tune</span>
+                        </div>
+                        
+                        <input type="text" id="topic" placeholder="Enter a blog topic..." required autocomplete="off">
+                        
+                        <div class="prompt-actions">
+                             <!-- VISIBLE DESKTOP SELECT -->
+                            <div class="tone-selector-desktop">
+                                <select id="tone-desktop">
+                                    <option value="informative">Informative</option>
+                                    <option value="educational">Educational</option>
+                                    <option value="creative">Creative</option>
+                                    <option value="formal">Formal</option>
+                                    <option value="technical">Technical</option>
+                                </select>
+                                <span class="material-icons dropdown-icon">expand_more</span>
+                            </div>
+                            <button type="submit" id="generate-btn" title="Generate Article">
+                                <span class="material-icons send-icon">auto_awesome</span>
+                                <div class="loader" style="display: none;"></div>
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
-
-            <section class="results-card card" id="results-section" style="display: none;">
-                <h2>Generated Article</h2>
-                <article id="blog-output">
-                    <!-- JS will populate this with formatted HTML -->
-                </article>
-            </section>
-        </main>
-        
-        <footer>
-            <p>&copy; Copyright 2025 BlogZenAI</p>
-        </footer>
+        </div>
     </div>
+
     <script src="script.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+
+    <!-- ===== NEW: ABOUT BUTTON AND MODAL ===== -->
+    <div class="about-container">
+        <button id="about-btn" class="about-btn">
+            <span class="material-icons">info</span>
+            <span class="about-tooltip">About BlogZenAI</span>
+        </button>
+    </div>
+
+    <div id="about-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="modal-close-btn">&times;</button>
+            
+            <!-- PASTE THE "ABOUT" TEXT HERE -->
+            <h2>About BlogZenAI: The Future of Automated Content Creation</h2>
+            <p>In a digital landscape demanding a constant stream of high-quality content, the process of ideation, research, writing, and optimization can be a significant bottleneck. Standard AI tools offer a starting point, but they still leave the heavy lifting of structuring, researching, and optimizing to you.</p>
+            
+            <h3>BlogZenAI is a different class of tool entirely.</h3>
+            <p>I created BlogZenAI not as a simple writing assistant, but as a fully <strong>autonomous blog generation agent</strong>. It's a smart system engineered to handle the entire content creation lifecycle from a single topic, delivering a complete, ready-to-publish article without the need for complex prompting or manual intervention.</p>
+            
+            <h3>My Philosophy: True Automation for Creators</h3>
+            <p>My goal was to build a tool that truly respects your time. Instead of a "co-pilot" that requires constant direction, BlogZenAI acts as your dedicated content specialist. You provide the vision (the topic), and the agent executes the strategy.</p>
+            <p>The magic lies in the <strong>Agentic Workflow</strong>, a sophisticated, multi-step process I designed to mirror the workflow of a professional content team:</p>
+            <ol>
+                <li><strong>The Planner:</strong> First, the agent deconstructs your topic, outlining a logical structure with relevant subheadings to ensure a comprehensive and coherent article.</li>
+                <li><strong>The Researcher:</strong> It then performs real-time, automated research, gathering fresh context from recent news articles, identifying powerful SEO keywords, and finding authoritative quotes to enrich the narrative.</li>
+                <li><strong>The Writer:</strong> With a solid plan and rich data, the agent writes the entire post section by section—crafting an engaging introduction, developing detailed body paragraphs, and concluding with a strong call to action.</li>
+                <li><strong>The Optimizer:</strong> Finally, it analyzes the finished article to generate a full suite of crucial SEO metadata, including a compelling title, a click-worthy meta description, and relevant tags.</li>
+            </ol>
+            <p>This end-to-end process ensures the final output is not just text, but a strategic content asset—well-researched, perfectly structured, and optimized for discovery.</p>
+            
+            <h3>A Commitment to Open Access</h3>
+            <p>I believe powerful tools should be accessible. That’s why BlogZenAI offers <strong>completely free and unlimited blog generations.</strong> There are no hidden fees, no credit systems, and no trial periods. My aim is to provide a valuable service to writers, marketers, students, and creators everywhere, without barriers.</p>
+            
+            <h3>How BlogZenAI Stands Apart</h3>
+            <p>While many tools can write, BlogZenAI is designed to <em>produce</em>. The distinction is in the completeness of the final product.</p>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Capability</th>
+                        <th>Standard AI Writing Tools</th>
+                        <th><strong>BlogZenAI: Autonomous Agent</strong></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Core Process</strong></td>
+                        <td>Single prompt, raw text output.</td>
+                        <td><strong>Multi-step, automated workflow.</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Research</strong></td>
+                        <td>Relies on static, pre-trained knowledge.</td>
+                        <td><strong>Integrates live, real-time web research.</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Output</strong></td>
+                        <td>Unstructured text requiring heavy editing.</td>
+                        <td><strong>A fully structured, formatted article.</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>SEO</strong></td>
+                        <td>None. User must create all metadata manually.</td>
+                        <td><strong>Built-in SEO metadata generation.</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Final Deliverable</strong></td>
+                        <td>A block of text.</td>
+                        <td><strong>A complete, ready-to-publish content package.</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <p>BlogZenAI is the result of my passion for AI and automation. It's a tool built to take an idea and transform it into a finished product, giving you back your most valuable asset: your time.</p>
+        </div>
+    </div>
+
 </body>
 </html>

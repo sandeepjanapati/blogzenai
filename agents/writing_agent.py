@@ -1,11 +1,11 @@
 # agents/writing_agent.py
 import logging 
 import random
-
+import time # Import the time module for rate limiting
 
 def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: dict, gemini_client):
     """
-    Generates the full blog post content using Gemini.
+    Generates the full blog post content using Gemini, with full research context.
     """
     logging.info("Starting content generation...")
     if not gemini_client:
@@ -25,24 +25,28 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
     try:
         intro_response = gemini_client.generate_content(intro_prompt)
         full_content.append(intro_response.text.strip())
-        full_content.append("\n") # Add space after intro
+        full_content.append("\n")
     except Exception as e:
-        logging.error(f"Error generating introduction: {e}")
+        logging.error(f"Error generating introduction: {e}", exc_info=True)
         full_content.append(f"*[Error generating introduction: {e}]*")
-
 
     # --- Body Sections (Subtopics) ---
     logging.info(f"Generating content for {len(subtopics)} subtopics...")
     for i, subtopic in enumerate(subtopics):
+        # Add a 1-second delay to stay under the API rate limit
+        if i > 0:
+            time.sleep(1)
+
         logging.info(f"  - Generating section for: '{subtopic}' ({i+1}/{len(subtopics)})")
-        # Prepare context from research (optional, keep it concise)
+        
+        # THIS IS THE CRITICAL PART THAT GIVES THE BLOG "SOUL"
         context = ""
         if research_data.get('news'):
             news_titles = [n.get('title', 'related news') for n in research_data['news']]
-            context += f"Consider mentioning recent developments like: {', '.join(news_titles[:2])}. " # Max 2 news titles
+            context += f"Consider mentioning recent developments like: {', '.join(news_titles[:2])}. "
         if research_data.get('keywords'):
-             context += f"Relevant keywords to consider: {', '.join(random.sample(research_data['keywords'], min(3, len(research_data['keywords']))))}. " # Max 3 random keywords
-        if research_data.get('quotes') and i % 2 == 0: # Add a quote to every other section maybe
+             context += f"Relevant keywords to consider: {', '.join(random.sample(research_data['keywords'], min(3, len(research_data['keywords']))))}. "
+        if research_data.get('quotes') and i % 2 == 0:
              if research_data['quotes']:
                  context += f"You could potentially include a quote like: {random.choice(research_data['quotes'])}. "
 
@@ -61,16 +65,16 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
         """
         try:
             section_response = gemini_client.generate_content(section_prompt)
-            full_content.append(f"## {subtopic}\n") # Add H2 heading
+            full_content.append(f"## {subtopic}\n")
             full_content.append(section_response.text.strip())
-            full_content.append("\n") # Add space between sections
+            full_content.append("\n")
         except Exception as e:
-            logging.error(f"Error generating section '{subtopic}': {e}")
+            logging.error(f"Error generating section '{subtopic}': {e}", exc_info=True)
             full_content.append(f"## {subtopic}\n\n*[Error generating content for this section: {e}]*\n")
-
 
     # --- Conclusion ---
     logging.info("Generating conclusion...")
+    time.sleep(1) # Add delay before conclusion call as well
     conclusion_prompt = f"""
     Write a strong concluding paragraph (around 100 words) for the blog post about "{topic}".
     The tone should be {tone}.
@@ -80,10 +84,10 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
     """
     try:
         conclusion_response = gemini_client.generate_content(conclusion_prompt)
-        full_content.append("## Conclusion\n") # Add H2 heading for conclusion
+        full_content.append("## Conclusion\n")
         full_content.append(conclusion_response.text.strip())
     except Exception as e:
-        logging.error(f"Error generating conclusion: {e}")
+        logging.error(f"Error generating conclusion: {e}", exc_info=True)
         full_content.append("\n## Conclusion\n\n*[Error generating conclusion: {e}]*")
 
     logging.info("Content generation complete.")
