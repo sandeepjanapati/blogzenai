@@ -1,14 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Config and Init ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyAZTNe_2vLOP1Ommwb99Bj46h81phBVFj8",
-        authDomain: "bolgzenai.firebaseapp.com",
-        projectId: "bolgzenai",
-        storageBucket: "bolgzenai.firebasestorage.app",
-        messagingSenderId: "474557573729",
-        appId: "1:474557573729:web:409bea6f9b3e0979745820",
-        measurementId: "G-5M6ZM3XJPW"
-        };
+    
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const API_URL = 'https://blogzenai-api-474557573729.asia-south1.run.app';
