@@ -1,4 +1,4 @@
-# api.py (FINAL PROFESSIONAL VERSION with Lifespan Management)
+# api.py
 import os, json, logging, firebase_admin
 from firebase_admin import credentials, auth
 from fastapi import FastAPI, HTTPException, Depends, Query
@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # This code runs ONCE when the application starts up.
     logging.info("Application startup: Initializing Firebase Admin SDK...")
     try:
         firebase_creds_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
@@ -43,7 +42,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         logging.error(f"Token verification failed: {e}")
         raise HTTPException(status_code=401, detail="Invalid auth credentials")
 
-# --- THE REST OF YOUR CODE IS UNCHANGED ---
 origins = ["https://bolgzenai.web.app", "https://bolgzenai.firebaseapp.com", "http://localhost:5500", "http://127.0.0.1:5500"]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 class BlogRequest(BaseModel): topic: str; tone: str = "informative"

@@ -1,20 +1,25 @@
 # .gitignore
 
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtual environment
-venv/
-.venv/
-
-# Environment variables
+# --- Environment & Secrets ---
 .env
+.venv/
+env/
+venv/
+ENV/
 
-# Output files (optional - keep if you want examples in repo)
-output/
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
 
-# VS Code settings
+# --- Firebase & Hosting ---
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# --- OS & IDE ---
+.DS_Store
 .vscode/
+.idea/

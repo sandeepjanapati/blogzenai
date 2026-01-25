@@ -1,16 +1,11 @@
 # cloudbuild.yaml
 
 steps:
-  # Step 1: Build the container image using Docker.
-  # The '--no-cache' flag is critical. It forces a fresh build,
-  # ensuring the new libraries from requirements.txt are installed.
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '--no-cache', '-t', 'gcr.io/bolgzenai/blogzenai-api:latest', '.']
 
-  # Step 2: Push the newly built image to Google's container registry.
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/bolgzenai/blogzenai-api:latest']
 
-# Specify the final image name for Cloud Build to report.
 images:
   - 'gcr.io/bolgzenai/blogzenai-api:latest'

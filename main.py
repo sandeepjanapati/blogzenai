@@ -22,7 +22,6 @@ async def run_blog_agent(topic: str, tone: str, output_dir: str, run_mode: str =
     newsdata_api_key = os.getenv("NEWSDATA_API_KEY")
     gemini_client = get_gemini_client()
 
-    # THE CORRECTED ERROR CHECK
     if not newsdata_api_key:
         error_msg = "[ERROR] Required environment variable NEWSDATA_API_KEY is missing."
         log_message(error_msg)
