@@ -1,0 +1,26 @@
+# .gitignore
+
+# --- Environment & Secrets ---
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# --- Firebase & Hosting ---
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+cloudbuild.yaml
+
+# --- OS & IDE ---
+.DS_Store
+.vscode/
+.idea/

@@ -1,0 +1,69 @@
+# utils/api_clients.py
+import os
+import logging
+import requests
+import aiohttp
+import functools
+import vertexai
+from vertexai.generative_models import GenerativeModel
+
+def get_gemini_client():
+    """
+    Initializes the Gemini client using the Vertex AI SDK. This is the correct method.
+    """
+    try:
+        gcp_project_id = os.getenv("GCP_PROJECT") 
+        gcp_region = "us-central1"
+
+        if not gcp_project_id:
+            logging.error("GCP_PROJECT env var not found. Cannot init Vertex AI.")
+            return None
+
+        vertexai.init(project=gcp_project_id, location=gcp_region)
+
+        # FINAL FIX: Using the correct, non-retired model name based on your research.
+        model = GenerativeModel("gemini-2.0-flash")
+
+        logging.info(f"Vertex AI client initialized successfully for project '{gcp_project_id}' in '{gcp_region}'.")
+        return model
+    except Exception as e:
+        logging.error(f"FATAL: Failed to initialize Vertex AI client: {e}", exc_info=True)
+        return None
+
+# --- The rest of the file is correct and can remain unchanged ---
+async def fetch_news_async(session, api_key, topic):
+    if not api_key: return []
+    query = requests.utils.quote(topic)
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&q={query}&language=en"
+    try:
+        async with session.get(url, timeout=15) as response:
+            response.raise_for_status()
+            data = await response.json()
+            return data.get('results', [])[:3]
+    except Exception as e: logging.warning(f"NewsData API request failed: {e}"); return []
+
+@functools.lru_cache(maxsize=128)
+def fetch_datamuse_keywords(topic):
+    # ... (code is the same, no changes needed)
+    keywords = set()
+    try:
+        response_ml = requests.get(f"https://api.datamuse.com/words?ml={topic}&max=10")
+        response_ml.raise_for_status()
+        keywords.update(item['word'] for item in response_ml.json())
+        response_trg = requests.get(f"https://api.datamuse.com/words?rel_trg={topic}&max=10")
+        response_trg.raise_for_status()
+        keywords.update(item['word'] for item in response_trg.json())
+        return list(keywords)[:15]
+    except Exception as e: logging.warning(f"Datamuse API request failed: {e}"); return []
+
+def fetch_quotable_quotes(topic_keywords):
+    # ... (code is the same, no changes needed)
+    quotes = []
+    tags = "|".join(topic_keywords[:3])
+    if not tags: return []
+    try:
+        response = requests.get(f"https://api.quotable.io/quotes/random?limit=2&tags={tags}", timeout=10)
+        response.raise_for_status()
+        quotes_data = response.json()
+        return [f"\"{q['content']}\" - {q['author']}" for q in quotes_data]
+    except Exception as e: logging.warning(f"Quotable API request failed: {e}"); return []
