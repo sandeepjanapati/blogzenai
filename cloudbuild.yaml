@@ -1,15 +1,12 @@
 # cloudbuild.yaml
 
 steps:
-  # Step 1: Build Docker image
   - name: "gcr.io/cloud-builders/docker"
     args: [ "build", "-t", "gcr.io/bolgzenai/blogzenai-api:latest", "." ]
 
-  # Step 2: Push image to Container Registry
   - name: "gcr.io/cloud-builders/docker"
     args: [ "push", "gcr.io/bolgzenai/blogzenai-api:latest" ]
 
-  # Step 3: Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
@@ -22,3 +19,6 @@ steps:
 
 images:
   - "gcr.io/bolgzenai/blogzenai-api:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
