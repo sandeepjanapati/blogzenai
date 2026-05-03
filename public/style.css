@@ -46,6 +46,9 @@ body { font-family: var(--font-family); background-color: var(--main-bg); color:
 #blog-form { width: 100%; max-width: var(--prompt-bar-max-width); }
 .prompt-bar { width: 100%; background: var(--main-bg); border: 1px solid #D1D5DB; border-radius: 16px; box-shadow: var(--shadow); display: flex; align-items: center; transition: border-color 0.2s, box-shadow 0.2s; }
 .prompt-bar:focus-within { border-color: var(--accent-color); box-shadow: 0 4px 25px rgba(16, 163, 127, 0.2); }
+.status-banner { width: 100%; max-width: var(--prompt-bar-max-width); margin-top: 0.75rem; border-radius: 12px; padding: 0.85rem 1rem; font-size: 0.95rem; line-height: 1.5; box-shadow: var(--shadow); }
+.status-banner.error { background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; }
+.status-banner.info { background: #DBEAFE; border: 1px solid #93C5FD; color: #1D4ED8; }
 #topic { flex-grow: 1; border: none; outline: none; background: transparent; font-size: 1rem; font-family: var(--font-family); padding: 1rem; height: 54px; }
 .prompt-actions { display: flex; align-items: center; gap: 0.5rem; padding-right: 0.5rem; }
 .tone-selector-desktop { position: relative; display: flex; align-items: center; }
@@ -54,6 +57,7 @@ body { font-family: var(--font-family); background-color: var(--main-bg); color:
 #generate-btn { background: var(--accent-color); color: white; border: none; border-radius: 10px; width: 40px; height: 40px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s; flex-shrink: 0; }
 #generate-btn:disabled { background: #9CA3AF; cursor: not-allowed; }
 .loader { width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite; }
+.content-loader { margin: 4rem auto; border-color: rgba(16, 163, 247, 0.2); border-top-color: var(--accent-color); }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 #blog-output { line-height: 1.8; }
 #blog-output h1, #blog-output h2, #blog-output h3 { margin: 1.5em 0 0.5em 0; font-weight: 600; }
