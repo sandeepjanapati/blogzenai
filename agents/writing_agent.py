@@ -3,7 +3,7 @@ import logging
 import random
 import time # Import the time module for rate limiting
 
-def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: dict, gemini_client):
+def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: dict, gemini_client, progress_callback=None):
     """
     Generates the full blog post content using Gemini, with full research context.
     """
@@ -12,10 +12,15 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
         logging.error("Gemini client not available. Cannot generate content.")
         return "# Blog Post Generation Failed\n\nCould not connect to the generative AI service."
 
+    def emit(message, progress):
+        if progress_callback:
+            progress_callback("writing", message, "✍️", "active", progress)
+
     full_content = []
 
     # --- Introduction ---
     logging.info("Generating introduction...")
+    emit("Writing introduction...", 28)
     intro_prompt = f"""
     Write an engaging introduction (around 100-150 words) for a blog post about "{topic}".
     The tone should be {tone}.
@@ -37,6 +42,8 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
         if i > 0:
             time.sleep(1)
 
+        progress_pct = 30 + int((i / len(subtopics)) * 50)  # 30-80%
+        emit(f"Writing: {subtopic}... ({i+1}/{len(subtopics)})", progress_pct)
         logging.info(f"  - Generating section for: '{subtopic}' ({i+1}/{len(subtopics)})")
         
         # THIS IS THE CRITICAL PART THAT GIVES THE BLOG "SOUL"
@@ -75,6 +82,7 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
     # --- Conclusion ---
     logging.info("Generating conclusion...")
     time.sleep(1) # Add delay before conclusion call as well
+    emit("Writing conclusion...", 80)
     conclusion_prompt = f"""
     Write a strong concluding paragraph (around 100 words) for the blog post about "{topic}".
     The tone should be {tone}.

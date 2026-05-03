@@ -54,6 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileToneSelect = document.getElementById('tone-mobile');
     const desktopToneSelect = document.getElementById('tone-desktop');
     const statusBanner = document.getElementById('status-banner');
+    const progressContainer = document.getElementById('progress-container');
+    const progressIcon = document.getElementById('progress-icon');
+    const progressMessage = document.getElementById('progress-message');
+    const progressBarFill = document.getElementById('progress-bar-fill');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressCompleted = document.getElementById('progress-completed');
 
     // --- UI State ---
     const openSidebar = () => body.classList.add('sidebar-open');
@@ -86,14 +92,61 @@ document.addEventListener('DOMContentLoaded', () => {
         sendIcon.style.display = isLoading ? 'none' : 'block';
         loader.style.display = isLoading ? 'block' : 'none';
     };
-    const createContentLoader = () => {
-        const loadingSpinner = document.createElement('div');
-        loadingSpinner.className = 'loader content-loader';
-        return loadingSpinner;
+
+    let lastProgressStep = '';
+    const resetProgress = () => {
+        lastProgressStep = '';
+        progressContainer.className = 'progress-container';
+        progressContainer.style.display = 'flex';
+        progressIcon.textContent = '';
+        progressMessage.textContent = '';
+        progressBarFill.style.width = '0%';
+        progressPercent.textContent = '0%';
+        progressCompleted.replaceChildren();
+        blogOutput.replaceChildren();
     };
+
+    const updateProgress = (data) => {
+        if (data.status === 'done' && data.step !== lastProgressStep) {
+            const chip = document.createElement('span');
+            chip.className = 'progress-chip';
+            chip.textContent = `${data.icon} ${data.step.charAt(0).toUpperCase() + data.step.slice(1)}`;
+            progressCompleted.appendChild(chip);
+        }
+        if (data.status === 'error' && data.step !== lastProgressStep) {
+            const chip = document.createElement('span');
+            chip.className = 'progress-chip error';
+            chip.textContent = `✗ ${data.step}`;
+            progressCompleted.appendChild(chip);
+        }
+        if (data.status === 'active') {
+            progressIcon.textContent = data.icon;
+            progressIcon.style.animation = 'none';
+            void progressIcon.offsetHeight;
+            progressIcon.style.animation = '';
+            progressMessage.textContent = data.message;
+            progressMessage.style.animation = 'none';
+            void progressMessage.offsetHeight;
+            progressMessage.style.animation = '';
+        }
+        progressBarFill.style.width = `${data.progress}%`;
+        progressPercent.textContent = `${data.progress}%`;
+        lastProgressStep = data.step;
+    };
+
+    const fadeOutProgress = () => {
+        return new Promise((resolve) => {
+            progressContainer.classList.add('fade-out');
+            setTimeout(() => {
+                progressContainer.classList.add('hidden');
+                resolve();
+            }, 600);
+        });
+    };
+
     const renderLoadingState = () => {
         showGenerationView();
-        blogOutput.replaceChildren(createContentLoader());
+        resetProgress();
     };
     const renderHistoryPlaceholder = (message) => {
         const placeholder = document.createElement('li');
@@ -317,6 +370,54 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const streamGeneration = async (path, options = {}) => {
+        const response = await fetch(`${API_URL}${path}`, {
+            credentials: 'include',
+            ...options,
+            headers: { ...(options.headers || {}) }
+        });
+
+        if (!response.ok) {
+            throw await parseApiError(response);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = null;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop();
+
+            for (const part of parts) {
+                if (!part.trim()) continue;
+                const lines = part.split('\n');
+                let eventType = '';
+                let eventData = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('event: ')) eventType = line.slice(7);
+                    if (line.startsWith('data: ')) eventData = line.slice(6);
+                }
+
+                if (eventType === 'step') {
+                    updateProgress(JSON.parse(eventData));
+                } else if (eventType === 'result') {
+                    result = JSON.parse(eventData);
+                } else if (eventType === 'error') {
+                    throw JSON.parse(eventData);
+                }
+            }
+        }
+
+        return result;
+    };
+
     const generateAuthenticatedBlog = async (topic, tone, currentUser = auth.currentUser) => {
         let user = currentUser;
         if (!user) {
@@ -324,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const token = await user.getIdToken();
-        return apiRequest('/generate-blog', {
+        return streamGeneration('/generate-blog', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -334,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const generateAnonymousBlog = (topic, tone) => apiRequest('/generate-blog-free', {
+    const generateAnonymousBlog = (topic, tone) => streamGeneration('/generate-blog-free', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -396,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            await fadeOutProgress();
             renderMarkdown(data.blog_content_markdown);
             if (auth.currentUser) {
                 await loadHistory();

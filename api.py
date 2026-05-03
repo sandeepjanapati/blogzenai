@@ -1,8 +1,10 @@
+import asyncio
 import base64
 import hashlib
 import hmac
 import json
 import logging
+import queue as thread_queue
 import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -13,7 +15,7 @@ from firebase_admin import auth, credentials
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field, field_validator
 
@@ -213,6 +215,44 @@ async def generate_blog_payload(request: BlogRequest):
     return markdown_content, metadata
 
 
+async def stream_blog_events(request: BlogRequest):
+    progress_q = thread_queue.Queue()
+
+    def progress_callback(step, message, icon, status, progress):
+        progress_q.put({"step": step, "message": message, "icon": icon, "status": status, "progress": progress})
+
+    gen_task = asyncio.create_task(
+        run_blog_agent(request.topic, request.tone, "/tmp/output", run_mode="api", progress_callback=progress_callback)
+    )
+
+    while not gen_task.done():
+        while not progress_q.empty():
+            try:
+                event = progress_q.get_nowait()
+                yield f"event: step\ndata: {json.dumps(event)}\n\n"
+            except thread_queue.Empty:
+                break
+        await asyncio.sleep(0.15)
+
+    # Drain remaining progress events
+    while not progress_q.empty():
+        event = progress_q.get_nowait()
+        yield f"event: step\ndata: {json.dumps(event)}\n\n"
+
+    try:
+        markdown_content, metadata = gen_task.result()
+    except Exception as exc:
+        LOGGER.error("Blog generation failed: %s", exc, exc_info=True)
+        yield f'event: error\ndata: {json.dumps({"message": "Generation failed. Please try again."})}\n\n'
+        return
+
+    if not markdown_content or not metadata:
+        yield f'event: error\ndata: {json.dumps({"message": "Failed to generate content."})}\n\n'
+        return
+
+    yield markdown_content, metadata
+
+
 @app.get("/health")
 async def health_check():
     return {
@@ -266,60 +306,80 @@ async def generate_blog_free_endpoint(request: BlogRequest, http_request: Reques
             "FREE_TRY_IN_PROGRESS",
         )
 
-    try:
-        markdown_content, metadata = await generate_blog_payload(request)
-        history_id = save_generation_to_history(
-            request.topic, request.tone, metadata, markdown_content
-        )
-        mark_anonymous_generation_used(cookie_id, history_id)
+    cookie_is_local = is_local_hostname(http_request.url.hostname)
 
-        response = JSONResponse(
-            {
-                "status": "success",
-                "history_id": history_id,
-                "topic": request.topic,
-                "metadata": metadata,
-                "blog_content_markdown": markdown_content,
-            }
-        )
-        cookie_is_local = is_local_hostname(http_request.url.hostname)
-        response.set_cookie(
-            key=ANON_COOKIE_NAME,
-            value=sign_anonymous_cookie(cookie_id, secret),
-            max_age=ANON_COOKIE_MAX_AGE,
-            httponly=True,
-            secure=not cookie_is_local,
-            samesite="lax" if cookie_is_local else "none",
-            path="/",
-        )
-        return response
-    except HTTPException:
-        release_anonymous_generation_reservation(cookie_id)
-        raise
-    except Exception:
-        release_anonymous_generation_reservation(cookie_id)
-        raise
+    async def free_event_generator():
+        try:
+            last_result = None
+            async for event in stream_blog_events(request):
+                if isinstance(event, str):
+                    yield event
+                else:
+                    last_result = event
+
+            if last_result is None:
+                release_anonymous_generation_reservation(cookie_id)
+                return
+
+            markdown_content, metadata = last_result
+            history_id = save_generation_to_history(
+                request.topic, request.tone, metadata, markdown_content
+            )
+            mark_anonymous_generation_used(cookie_id, history_id)
+
+            yield f'event: result\ndata: {json.dumps({"status": "success", "history_id": history_id, "topic": request.topic, "metadata": metadata, "blog_content_markdown": markdown_content})}\n\n'
+            yield "event: done\ndata: {}\n\n"
+        except Exception as exc:
+            LOGGER.error("Free generation stream error: %s", exc, exc_info=True)
+            release_anonymous_generation_reservation(cookie_id)
+            yield f'event: error\ndata: {json.dumps({"message": "Generation failed. Please try again."})}\n\n'
+
+    response = StreamingResponse(free_event_generator(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    response.set_cookie(
+        key=ANON_COOKIE_NAME,
+        value=sign_anonymous_cookie(cookie_id, secret),
+        max_age=ANON_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=not cookie_is_local,
+        samesite="lax" if cookie_is_local else "none",
+        path="/",
+    )
+    return response
 
 
 @app.post("/generate-blog")
 async def generate_blog_endpoint(request: BlogRequest, user: dict = Depends(get_current_user)):
     LOGGER.info("Authenticated request from user: %s", user.get("uid"))
-    markdown_content, metadata = await generate_blog_payload(request)
     user_info = {
         "uid": user.get("uid"),
         "name": user.get("name"),
         "email": user.get("email"),
     }
-    history_id = save_user_generation_to_history(
-        user_info, request.topic, request.tone, metadata, markdown_content
-    )
-    return {
-        "status": "success",
-        "history_id": history_id,
-        "topic": request.topic,
-        "metadata": metadata,
-        "blog_content_markdown": markdown_content,
-    }
+
+    async def auth_event_generator():
+        try:
+            last_result = None
+            async for event in stream_blog_events(request):
+                if isinstance(event, str):
+                    yield event
+                else:
+                    last_result = event
+
+            if last_result is None:
+                return
+
+            markdown_content, metadata = last_result
+            history_id = save_user_generation_to_history(
+                user_info, request.topic, request.tone, metadata, markdown_content
+            )
+
+            yield f'event: result\ndata: {json.dumps({"status": "success", "history_id": history_id, "topic": request.topic, "metadata": metadata, "blog_content_markdown": markdown_content})}\n\n'
+            yield "event: done\ndata: {}\n\n"
+        except Exception as exc:
+            LOGGER.error("Auth generation stream error: %s", exc, exc_info=True)
+            yield f'event: error\ndata: {json.dumps({"message": "Generation failed. Please try again."})}\n\n'
+
+    return StreamingResponse(auth_event_generator(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.get("/history")
