@@ -1,5 +1,4 @@
 # utils/api_clients.py
-import os
 import logging
 import requests
 import aiohttp
@@ -7,22 +6,29 @@ import functools
 import vertexai
 from vertexai.generative_models import GenerativeModel
 
+from utils.runtime_config import get_google_credentials, get_runtime_value
+
 def get_gemini_client():
     """
     Initializes the Gemini client using the Vertex AI SDK. This is the correct method.
     """
     try:
-        gcp_project_id = os.getenv("GCP_PROJECT") 
+        gcp_project_id = get_runtime_value("GCP_PROJECT", allow_local_dev_default=False)
         gcp_region = "us-central1"
+        google_credentials = get_google_credentials()
 
         if not gcp_project_id:
-            logging.error("GCP_PROJECT env var not found. Cannot init Vertex AI.")
+            logging.error("GCP_PROJECT could not be resolved. Cannot init Vertex AI.")
             return None
 
-        vertexai.init(project=gcp_project_id, location=gcp_region)
+        vertexai.init(
+            project=gcp_project_id,
+            location=gcp_region,
+            credentials=google_credentials,
+        )
 
         # FINAL FIX: Using the correct, non-retired model name based on your research.
-        model = GenerativeModel("gemini-2.0-flash")
+        model = GenerativeModel("gemini-flash-latest")
 
         logging.info(f"Vertex AI client initialized successfully for project '{gcp_project_id}' in '{gcp_region}'.")
         return model
