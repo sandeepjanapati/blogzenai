@@ -28,7 +28,7 @@ def get_gemini_client():
         )
 
         # FINAL FIX: Using the correct, non-retired model name based on your research.
-        model = GenerativeModel("gemini-flash-latest")
+        model = GenerativeModel("gemini-2.5-flash-lite")
 
         logging.info(f"Vertex AI client initialized successfully for project '{gcp_project_id}' in '{gcp_region}'.")
         return model
