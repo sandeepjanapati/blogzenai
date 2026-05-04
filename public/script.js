@@ -64,6 +64,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const showWelcomeView = () => {
         welcomeView.style.display = 'flex';
         generationView.style.display = 'none';
+        progressContainer.style.display = 'none';
+        progressContainer.className = 'progress-strip';
     };
     const showGenerationView = () => {
         welcomeView.style.display = 'none';
@@ -213,49 +215,46 @@ document.addEventListener('DOMContentLoaded', () => {
         currentMarkdown = markdownContent || '';
         const html = converter.makeHtml(currentMarkdown);
 
-        const actionsBar = document.createElement('div');
-        actionsBar.className = 'blog-actions';
-        actionsBar.innerHTML = `
-            <button class="blog-action-btn" id="copy-blog-btn" title="Copy as Markdown">
-                <span class="material-icons">content_copy</span>
-                <span class="btn-label">Copy</span>
-            </button>
-            <button class="blog-action-btn" id="download-blog-btn" title="Download as Markdown">
-                <span class="material-icons">download</span>
-                <span class="btn-label">Download</span>
-            </button>
-        `;
-
         blogOutput.innerHTML = '';
-        blogOutput.appendChild(actionsBar);
         const content = document.createElement('div');
         content.innerHTML = sanitizeHtml(html);
         blogOutput.appendChild(content);
+
+        const actionsBar = document.createElement('div');
+        actionsBar.className = 'blog-actions';
+        actionsBar.innerHTML = `
+            <button class="blog-action-btn" id="copy-blog-btn" title="Copy">
+                <span class="material-icons">content_copy</span>
+            </button>
+            <button class="blog-action-btn" id="download-blog-btn" title="Download PDF">
+                <span class="material-icons">download</span>
+            </button>
+        `;
+        blogOutput.appendChild(actionsBar);
 
         const slug = (metadata && metadata.slug) || 'blog-post';
 
         document.getElementById('copy-blog-btn').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
-            const label = btn.querySelector('.btn-label');
             const icon = btn.querySelector('.material-icons');
             try {
                 await navigator.clipboard.writeText(currentMarkdown);
                 icon.textContent = 'check';
-                label.textContent = 'Copied!';
-                setTimeout(() => { icon.textContent = 'content_copy'; label.textContent = 'Copy'; }, 2000);
+                setTimeout(() => { icon.textContent = 'content_copy'; }, 2000);
             } catch (err) {
                 console.error('Copy failed:', err);
             }
         });
 
         document.getElementById('download-blog-btn').addEventListener('click', () => {
-            const blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${slug}.md`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: `${slug}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(content).save();
         });
     };
 
