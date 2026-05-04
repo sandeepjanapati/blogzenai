@@ -1,6 +1,7 @@
 # agents/writing_agent.py
 import logging 
 import random
+import time
 
 def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: dict, gemini_client, progress_callback=None):
     """
@@ -37,6 +38,9 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
     # --- Body Sections (Subtopics) ---
     logging.info(f"Generating content for {len(subtopics)} subtopics...")
     for i, subtopic in enumerate(subtopics):
+        if i > 0:
+            time.sleep(1)
+
         progress_pct = 30 + int((i / len(subtopics)) * 50)  # 30-80%
         emit(f"Writing: {subtopic}... ({i+1}/{len(subtopics)})", progress_pct)
         logging.info(f"  - Generating section for: '{subtopic}' ({i+1}/{len(subtopics)})")
@@ -76,6 +80,7 @@ def generate_blog_post(topic: str, subtopics: list, tone: str, research_data: di
 
     # --- Conclusion ---
     logging.info("Generating conclusion...")
+    time.sleep(1)
     emit("Writing conclusion...", 80)
     conclusion_prompt = f"""
     Write a strong concluding paragraph (around 100 words) for the blog post about "{topic}".
