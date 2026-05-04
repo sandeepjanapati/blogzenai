@@ -168,6 +168,42 @@ body { font-family: var(--font-family); background-color: var(--main-bg); color:
     to { opacity: 1; }
 }
 
+/* --- BLOG ACTION BUTTONS --- */
+.blog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    padding: 0 0 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 1.25rem;
+}
+.blog-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.blog-action-btn .material-icons {
+    font-size: 1rem;
+}
+.blog-action-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+.blog-action-btn:active {
+    transform: scale(0.96);
+}
+
 /* --- NEW: ABOUT BUTTON & MODAL STYLES --- */
 .about-container {
     position: absolute;

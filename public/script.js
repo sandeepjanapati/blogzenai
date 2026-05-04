@@ -207,10 +207,56 @@ document.addEventListener('DOMContentLoaded', () => {
         return template.innerHTML;
     };
 
-    const renderMarkdown = (markdownContent) => {
+    let currentMarkdown = '';
+    const renderMarkdown = (markdownContent, metadata = {}) => {
         showGenerationView();
-        const html = converter.makeHtml(markdownContent || '');
-        blogOutput.innerHTML = sanitizeHtml(html);
+        currentMarkdown = markdownContent || '';
+        const html = converter.makeHtml(currentMarkdown);
+
+        const actionsBar = document.createElement('div');
+        actionsBar.className = 'blog-actions';
+        actionsBar.innerHTML = `
+            <button class="blog-action-btn" id="copy-blog-btn" title="Copy as Markdown">
+                <span class="material-icons">content_copy</span>
+                <span class="btn-label">Copy</span>
+            </button>
+            <button class="blog-action-btn" id="download-blog-btn" title="Download as Markdown">
+                <span class="material-icons">download</span>
+                <span class="btn-label">Download</span>
+            </button>
+        `;
+
+        blogOutput.innerHTML = '';
+        blogOutput.appendChild(actionsBar);
+        const content = document.createElement('div');
+        content.innerHTML = sanitizeHtml(html);
+        blogOutput.appendChild(content);
+
+        const slug = (metadata && metadata.slug) || 'blog-post';
+
+        document.getElementById('copy-blog-btn').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const label = btn.querySelector('.btn-label');
+            const icon = btn.querySelector('.material-icons');
+            try {
+                await navigator.clipboard.writeText(currentMarkdown);
+                icon.textContent = 'check';
+                label.textContent = 'Copied!';
+                setTimeout(() => { icon.textContent = 'content_copy'; label.textContent = 'Copy'; }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+        });
+
+        document.getElementById('download-blog-btn').addEventListener('click', () => {
+            const blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${slug}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
     };
 
     const parseApiError = async (response) => {
@@ -347,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     Authorization: `Bearer ${token}`
                 }
             });
-            renderMarkdown(item.generated_output);
+            renderMarkdown(item.generated_output, item.metadata || {});
         } catch (error) {
             console.error('Error viewing history item:', error);
             showStatus(getErrorMessage(error, 'Could not retrieve this history item.'), 'error');
@@ -483,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             await fadeOutProgress();
-            renderMarkdown(data.blog_content_markdown);
+            renderMarkdown(data.blog_content_markdown, data.metadata);
             if (auth.currentUser) {
                 await loadHistory();
             }
