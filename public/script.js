@@ -55,11 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const desktopToneSelect = document.getElementById('tone-desktop');
     const statusBanner = document.getElementById('status-banner');
     const progressContainer = document.getElementById('progress-container');
-    const progressIcon = document.getElementById('progress-icon');
     const progressMessage = document.getElementById('progress-message');
-    const progressBarFill = document.getElementById('progress-bar-fill');
-    const progressPercent = document.getElementById('progress-percent');
-    const progressCompleted = document.getElementById('progress-completed');
+    const progressSteps = document.getElementById('progress-steps');
 
     // --- UI State ---
     const openSidebar = () => body.classList.add('sidebar-open');
@@ -96,41 +93,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastProgressStep = '';
     const resetProgress = () => {
         lastProgressStep = '';
-        progressContainer.className = 'progress-container';
-        progressContainer.style.display = 'flex';
-        progressIcon.textContent = '';
+        progressContainer.className = 'progress-strip';
+        progressContainer.style.display = 'block';
         progressMessage.textContent = '';
-        progressBarFill.style.width = '0%';
-        progressPercent.textContent = '0%';
-        progressCompleted.replaceChildren();
+        progressSteps.replaceChildren();
         blogOutput.replaceChildren();
     };
 
     const updateProgress = (data) => {
         if (data.status === 'done' && data.step !== lastProgressStep) {
-            const chip = document.createElement('span');
-            chip.className = 'progress-chip';
-            chip.textContent = `${data.icon} ${data.step.charAt(0).toUpperCase() + data.step.slice(1)}`;
-            progressCompleted.appendChild(chip);
+            const tag = document.createElement('span');
+            tag.className = 'progress-step-tag';
+            tag.innerHTML = `<span class="check">✓</span> ${data.step.charAt(0).toUpperCase() + data.step.slice(1)}`;
+            progressSteps.appendChild(tag);
         }
         if (data.status === 'error' && data.step !== lastProgressStep) {
-            const chip = document.createElement('span');
-            chip.className = 'progress-chip error';
-            chip.textContent = `✗ ${data.step}`;
-            progressCompleted.appendChild(chip);
+            const tag = document.createElement('span');
+            tag.className = 'progress-step-tag';
+            tag.innerHTML = `<span class="fail">✗</span> ${data.step}`;
+            progressSteps.appendChild(tag);
         }
         if (data.status === 'active') {
-            progressIcon.textContent = data.icon;
-            progressIcon.style.animation = 'none';
-            void progressIcon.offsetHeight;
-            progressIcon.style.animation = '';
             progressMessage.textContent = data.message;
-            progressMessage.style.animation = 'none';
-            void progressMessage.offsetHeight;
-            progressMessage.style.animation = '';
         }
-        progressBarFill.style.width = `${data.progress}%`;
-        progressPercent.textContent = `${data.progress}%`;
         lastProgressStep = data.step;
     };
 
@@ -138,9 +123,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             progressContainer.classList.add('fade-out');
             setTimeout(() => {
-                progressContainer.classList.add('hidden');
+                progressContainer.style.display = 'none';
                 resolve();
-            }, 600);
+            }, 400);
         });
     };
 

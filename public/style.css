@@ -91,107 +91,81 @@ body { font-family: var(--font-family); background-color: var(--main-bg); color:
 }
 
 /* --- PROGRESS / CHAIN OF THOUGHTS STYLES --- */
-.progress-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 320px;
-    padding: 2rem;
-    transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.progress-container.fade-out {
-    opacity: 0;
-    transform: translateY(-20px);
-    pointer-events: none;
-}
-.progress-container.hidden { display: none; }
-.progress-card {
-    background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
-    border: 1px solid #e0e7ff;
-    border-radius: 20px;
-    padding: 2.5rem 2rem;
-    max-width: 480px;
+.progress-strip {
+    padding: 0.5rem 1rem 0.4rem;
+    max-width: 768px;
+    margin: 0 auto;
     width: 100%;
-    box-shadow: 0 8px 32px rgba(16, 163, 247, 0.08);
-    text-align: center;
+    animation: stripFadeIn 0.3s ease;
 }
-.progress-current { margin-bottom: 1.8rem; }
-.progress-icon {
-    font-size: 3rem;
-    display: block;
-    margin-bottom: 0.8rem;
-    animation: iconBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes iconBounce {
-    0% { transform: scale(0.3); opacity: 0; }
-    60% { transform: scale(1.15); }
-    100% { transform: scale(1); opacity: 1; }
-}
-.progress-message {
-    font-size: 1.1rem;
-    color: #374151;
-    font-weight: 500;
-    min-height: 1.6em;
-    animation: msgSlide 0.4s ease;
-}
-@keyframes msgSlide {
-    from { opacity: 0; transform: translateY(8px); }
+@keyframes stripFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
 }
-.progress-bar-wrapper {
+.progress-strip.fade-out {
+    animation: stripFadeOut 0.4s ease forwards;
+}
+@keyframes stripFadeOut {
+    to { opacity: 0; transform: translateY(4px); }
+}
+.progress-strip-inner {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
 }
-.progress-bar-track {
-    flex-grow: 1;
+.progress-dot-pulse {
+    width: 8px;
     height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    overflow: hidden;
+    border-radius: 50%;
+    background: var(--accent-color, #6366f1);
+    animation: dotPulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
 }
-.progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--accent-color), #6366f1);
-    border-radius: 4px;
-    transition: width 0.5s ease;
-    width: 0%;
+@keyframes dotPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.1); }
 }
-.progress-percent {
-    font-size: 0.85rem;
+.progress-text {
+    font-size: 0.82rem;
     color: #6b7280;
-    font-weight: 600;
-    min-width: 36px;
-    text-align: right;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.progress-completed {
+.progress-steps-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    justify-content: center;
+    gap: 0.3rem;
+    align-items: center;
 }
-.progress-chip {
+.progress-step-tag {
+    font-size: 0.7rem;
+    color: #9ca3af;
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.7rem;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    border-radius: 20px;
+    gap: 0.2rem;
+    padding: 0.1rem 0;
+    animation: tagFadeIn 0.25s ease;
+}
+.progress-step-tag .check {
+    color: #22c55e;
     font-size: 0.75rem;
-    color: #065f46;
-    font-weight: 500;
-    animation: chipIn 0.3s ease;
 }
-.progress-chip.error {
-    background: #fef2f2;
-    border-color: #fca5a5;
-    color: #991b1b;
+.progress-step-tag .fail {
+    color: #ef4444;
+    font-size: 0.75rem;
 }
-@keyframes chipIn {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
+.progress-step-tag + .progress-step-tag::before {
+    content: '·';
+    margin-right: 0.3rem;
+    color: #d1d5db;
+}
+@keyframes tagFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* --- NEW: ABOUT BUTTON & MODAL STYLES --- */
