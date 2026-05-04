@@ -19,7 +19,6 @@ SECRET_NAME_ALIASES = {
     "NEWSDATA_API_KEY": ("NEWSDATA_API_KEY",),
     "FIREBASE_CREDENTIALS_JSON": ("FIREBASE_CREDENTIALS_JSON", "firebase-service-account-key"),
     "ANON_COOKIE_SECRET": ("ANON_COOKIE_SECRET",),
-    "GEMINI_API_KEY": ("GEMINI_API_KEY",),
 }
 CLOUD_PLATFORM_SCOPE = ["https://www.googleapis.com/auth/cloud-platform"]
 

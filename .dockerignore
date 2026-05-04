@@ -1,0 +1,15 @@
+public/
+.git/
+.github/
+.firebase/
+venv/
+__pycache__/
+.env
+README.md
+logo.png
+*.md
+.gitignore
+.firebaserc
+.DS_Store
+.vscode/
+.idea/

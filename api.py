@@ -206,15 +206,6 @@ async def get_current_user(token: str | None = Depends(oauth2_scheme)):
         raise app_error(401, "Invalid auth credentials.", "INVALID_AUTH_CREDENTIALS")
 
 
-async def generate_blog_payload(request: BlogRequest):
-    markdown_content, metadata = await run_blog_agent(
-        request.topic, request.tone, "/tmp/output", run_mode="api"
-    )
-    if not markdown_content or not metadata:
-        raise app_error(500, "Failed to generate content.", "GENERATION_FAILED")
-    return markdown_content, metadata
-
-
 async def stream_blog_events(request: BlogRequest):
     progress_q = thread_queue.Queue()
 
@@ -250,7 +241,7 @@ async def stream_blog_events(request: BlogRequest):
         yield f'event: error\ndata: {json.dumps({"message": "Failed to generate content."})}\n\n'
         return
 
-    yield markdown_content, metadata
+    yield {"_result": (markdown_content, metadata)}
 
 
 @app.get("/health")
@@ -314,8 +305,8 @@ async def generate_blog_free_endpoint(request: BlogRequest, http_request: Reques
             async for event in stream_blog_events(request):
                 if isinstance(event, str):
                     yield event
-                else:
-                    last_result = event
+                elif isinstance(event, dict) and "_result" in event:
+                    last_result = event["_result"]
 
             if last_result is None:
                 release_anonymous_generation_reservation(cookie_id)
@@ -362,8 +353,8 @@ async def generate_blog_endpoint(request: BlogRequest, user: dict = Depends(get_
             async for event in stream_blog_events(request):
                 if isinstance(event, str):
                     yield event
-                else:
-                    last_result = event
+                elif isinstance(event, dict) and "_result" in event:
+                    last_result = event["_result"]
 
             if last_result is None:
                 return

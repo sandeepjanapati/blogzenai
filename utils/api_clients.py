@@ -1,5 +1,6 @@
 # utils/api_clients.py
 import logging
+import os
 import requests
 import aiohttp
 import functools
@@ -27,16 +28,15 @@ def get_gemini_client():
             credentials=google_credentials,
         )
 
-        # FINAL FIX: Using the correct, non-retired model name based on your research.
-        model = GenerativeModel("gemini-2.5-flash-lite")
+        model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash-lite")
+        model = GenerativeModel(model_name)
 
-        logging.info(f"Vertex AI client initialized successfully for project '{gcp_project_id}' in '{gcp_region}'.")
+        logging.info(f"Vertex AI client initialized successfully for project '{gcp_project_id}' with model '{model_name}'.")
         return model
     except Exception as e:
         logging.error(f"FATAL: Failed to initialize Vertex AI client: {e}", exc_info=True)
         return None
 
-# --- The rest of the file is correct and can remain unchanged ---
 async def fetch_news_async(session, api_key, topic):
     if not api_key: return []
     query = requests.utils.quote(topic)
@@ -50,7 +50,6 @@ async def fetch_news_async(session, api_key, topic):
 
 @functools.lru_cache(maxsize=128)
 def fetch_datamuse_keywords(topic):
-    # ... (code is the same, no changes needed)
     keywords = set()
     try:
         response_ml = requests.get(f"https://api.datamuse.com/words?ml={topic}&max=10")
@@ -62,14 +61,3 @@ def fetch_datamuse_keywords(topic):
         return list(keywords)[:15]
     except Exception as e: logging.warning(f"Datamuse API request failed: {e}"); return []
 
-def fetch_quotable_quotes(topic_keywords):
-    # ... (code is the same, no changes needed)
-    quotes = []
-    tags = "|".join(topic_keywords[:3])
-    if not tags: return []
-    try:
-        response = requests.get(f"https://api.quotable.io/quotes/random?limit=2&tags={tags}", timeout=10)
-        response.raise_for_status()
-        quotes_data = response.json()
-        return [f"\"{q['content']}\" - {q['author']}" for q in quotes_data]
-    except Exception as e: logging.warning(f"Quotable API request failed: {e}"); return []
